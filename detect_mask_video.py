@@ -1,5 +1,4 @@
 # import the necessary packages
-from turtle import color
 from keras.applications.mobilenet_v2 import preprocess_input
 # from tensorflow.keras.utils import img_to_array
 # from keras.preprocessing.image import img_to_array
@@ -10,7 +9,7 @@ import tensorflow as tf
 import imutils
 import time
 import cv2
-import os
+from pathlib import Path
 
 
 def detect_and_predict_mask(frame, faceNet, maskNet):
@@ -52,6 +51,8 @@ def detect_and_predict_mask(frame, faceNet, maskNet):
 
             # extract the face ROI, convert it from BGR to RGB channel
             # ordering, resize it to 224x224, and preprocess it
+            if endX <= startX or endY <= startY:
+                continue
             face = frame[startY:endY, startX:endX]
             face = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
             face = cv2.resize(face, (224, 224))
@@ -80,12 +81,13 @@ def detect_and_predict_mask(frame, faceNet, maskNet):
 # load our serialized face detector model from disk
 # prototxtPath = os.path.join(
 #     os.getcwd(), 'face_detector', 'deploy.prototxt')
-prototxtPath = "C:/Users/putri/Documents/PROJECT/codingan/FaceMaskDetection/face_detector/deploy.prototxt"
-weightsPath = "C:/Users/putri/Documents/PROJECT/codingan/FaceMaskDetection/face_detector/res10_300x300_ssd_iter_140000.caffemodel"
+base_dir = Path(__file__).resolve().parent
+prototxtPath = str(base_dir / "face_detector" / "deploy.prototxt")
+weightsPath = str(base_dir / "face_detector" / "res10_300x300_ssd_iter_140000.caffemodel")
 faceNet = cv2.dnn.readNetFromCaffe(prototxtPath, weightsPath)
 
 # load the face mask detector model from disk
-maskNet = load_model("C:/Users/putri/Documents/PROJECT/codingan/FaceMaskDetection/mask_detector.model")
+maskNet = load_model(str(base_dir / "mask_detector.model"))
 
 # initialize the video stream
 print("[INFO] starting video stream...")
@@ -96,6 +98,9 @@ while True:
     # grab the frame from the threaded video stream and resize it
     # to have a maximum width of 400 pixels
     frame = vs.read()
+    if frame is None:
+        print("[ERROR] No frame received from camera.")
+        break
     frame = imutils.resize(frame, width=400)
 
     # detect faces in the frame and determine if they are wearing a
