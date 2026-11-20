@@ -19,6 +19,7 @@ from imutils import paths
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from pathlib import Path
 
 # initialize the initial learning rate, number of epochs to train for,
 # and batch size
@@ -26,7 +27,8 @@ INIT_LR = 1e-4
 EPOCHS = 20
 BS = 32
 
-DIRECTORY = r'C:\xampp\htdocs\projek1\sample\Face-Mask-Detection\dataset'
+BASE_DIR = Path(__file__).resolve().parent
+DIRECTORY = BASE_DIR / "dataset"
 CATEGORIES = ["with_mask", "without_mask"]
 
 # grab the list of images in our dataset directory, then initialize
@@ -40,6 +42,8 @@ for category in CATEGORIES:
     path = os.path.join(DIRECTORY, category)
     for img in os.listdir(path):
         img_path = os.path.join(path, img)
+        if not os.path.isfile(img_path) or Path(img_path).suffix.lower() not in {".jpg", ".jpeg", ".png", ".bmp", ".webp"}:
+            continue
         image = load_img(img_path, target_size=(224, 224))
         image = img_to_array(image)
         image = preprocess_input(image)
@@ -101,9 +105,7 @@ model.compile(loss="binary_crossentropy", optimizer=opt,
 print("[INFO] training head...")
 H = model.fit(
     aug.flow(trainX, trainY, batch_size=BS),
-    steps_per_epoch=len(trainX) // BS,
     validation_data=(testX, testY),
-    validation_steps=len(testX) // BS,
     epochs=EPOCHS)
 
 # make predictions on the testing set
@@ -120,7 +122,7 @@ print(classification_report(testY.argmax(axis=1), predIdxs,
 
 # serialize the model to disk
 print("[INFO] saving mask detector model...")
-model.save("mask_detector.model", save_format="h5")
+model.save(str(BASE_DIR / "mask_detector.model"), save_format="h5")
 
 # plot the training loss and accuracy
 N = EPOCHS
@@ -134,4 +136,4 @@ plt.title("Training Loss and Accuracy")
 plt.xlabel("Epoch #")
 plt.ylabel("Loss/Accuracy")
 plt.legend(loc="lower left")
-plt.savefig("plot.png")
+plt.savefig(str(BASE_DIR / "plot.png"))
